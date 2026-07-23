@@ -1,0 +1,58 @@
+<launch>
+
+  <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find estimator)/config/rviz_sim.rviz">
+  </node> -->
+
+  <!-- ===== nodelet managers(原 perching.launch 承担的职责,现由本 launch 提供) ===== -->
+  <!-- 全局 /manager:加载 sim_odom / rcinRemap / odomRemap -->
+  <node pkg="nodelet" type="nodelet" name="manager" args="manager" output="screen">
+    <param name="num_worker_threads" value="16"/>
+  </node>
+
+  <group ns="drone0">
+    <!-- rviz中可视化无人机位姿变化 -->
+    <!-- <node pkg="odom_visualization" name="odom_visualization" type="odom_visualization" output="screen"> -->
+      <!-- 将订阅的odom重定向至/drone0/odom -->
+      <!-- <remap from="~odom" to="odom" />
+      <param name="robot_scale" value="1.0"/> -->
+    <!-- </node> -->
+    <!-- rviz中可视化平台运动 -->
+    <!-- <node pkg="odom_visualization" name="odom_visualization_plate" type="odom_visualization_plate" output="screen">
+      <remap from="~odom" to="estimator/target_odom" />
+      <param name="height" value="1.2"/>
+      <param name="width" value="1.6"/>
+      <param name="platform_r" value="1.0"/>
+    </node> -->
+
+    <!-- /drone0/manager:加载 ctrl_node -->
+    <node pkg="nodelet" type="nodelet" name="manager" args="manager" output="screen">
+      <param name="num_worker_threads" value="16"/>
+    </node>
+
+    <!-- 仿真规划器(替代已删除的 planning 包):订阅 uav odom 与触发信号,发布 /drone0/planning/cmd 驱动 ctrl_node -->
+    <node pkg="nodelet" type="nodelet" name="sim_odom" args="load sim_odom/SimOdom /manager" output="screen">
+      <!-- visuallize用，将发布的/drone0/estimator/odom重命名为/drone0/odom -->
+      <remap from="~odom" to="odom"/>
+      <!-- 订阅无人机实际odometry (sim_odom 仅订阅 uav_odom, 不订阅 target) -->
+      <!--<remap from="~uav_odom" to="/odom/remap"/> --> <!-- 实飞(切换: 启用此行,注释下一行) -->
+       <remap from="~uav_odom" to="/mavros/local_position/odom"/> <!-- 仿真 -->
+      <!-- 发布控制指令 -->
+      <remap from="~cmd" to="planning/cmd"/>
+      <!-- 外部程序触发规划接口 -->
+      <remap from="~triger" to="/landing_triger"/>
+      <!-- 控制模块触发信号 -->
+      <remap from="~ctrl_triger" to="/traj_start_trigger"/>
+
+      <!-- 接收的里程计数据话题 -->
+      <!-- <remap from="~car_odom_topic" to="/smart/odom"/>
+      <remap from="~uav_odom_topic" to="/gazebo/model_states"/> -->
+
+
+      <param name="visualize_sig" value="true"/>
+
+      <rosparam command="load" file="$(find estimator)/config/odom_param.yaml" />
+
+    </node>
+
+  </group>
+</launch>

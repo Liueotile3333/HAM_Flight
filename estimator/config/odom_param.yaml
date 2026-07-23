@@ -1,0 +1,48 @@
+use_sim_uav: false
+
+# use_sim_car: false
+
+pub_hz_: 200
+
+t_uav_per: 3.0
+
+# t_car_per: 5.0
+# car_R: 15.0
+# car_V: 0.8
+# car_P_x: [0.0, 3.0, 6.0, 8.0, 6.0, 3.0, 0.0, -3.0, -6.0, -8.0, -6.0, -3.0]
+# car_P_y: [0.0, 1.5, 3.0, 0.0, -3.0, -1.5, 0.0, 1.5, 3.0, 0.0, -3.0, -2.5]
+# car_P_z: [0.0, -0.5, -1.0, -1.0, -1.0, -0.5, 0.0, 0.5, 1.0, 1.0, 0.5, 0.0]
+
+uav_P_x: [0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 8.0, 6.0, 4.0, 2.0]
+uav_P_y: [0.0, 4.0, 4.9, 4.9, 4.0, 0.0, -4.0, -4.9, -4.9, 4.0]
+uav_P_z: [4.0, 3.5, 3.0, 2.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.0]
+
+# Positive value advances the evaluated reference trajectory by this duration.
+time_delay: 0.03
+
+trans_x: 3.0
+trans_y: 2.0
+trans_z: 0.0
+rotat_roll: 0.0
+rotat_pitch: 0.0
+rotat_yaw: 0.2
+
+# Parameterized trajectory: vertical climb -> circle/figure-eight -> vertical descent.
+# The trajectory origin is frozen at the valid planning trigger position.
+traj_type: 1              # 1=circle, 2=figure-eight
+traj_cycles: 1            # complete closed cycles in the maneuver segment
+traj_radius: 5.0          # circle radius / figure-eight x amplitude [m]
+traj_amp_y: 5.0           # figure-eight y amplitude [m], ignored for circle
+traj_height: 2.0          # climb height relative to trigger position [m]
+traj_rise_time: 5.0       # base climb duration [s]
+traj_duration: 50.0       # base maneuver duration [s]
+traj_descend_time: 5.0    # base descent duration [s]
+
+# Spatial and temporal scaling are independent.
+path_scale: 1.0           # scales radius, amplitude and climb height
+speed_scale: 1.0          # >1 faster, <1 slower; geometry remains unchanged
+lookahead_time: 0.5       # future-reference lookahead in wall-clock seconds
+
+# Safety and timing checks.
+trigger_velocity_threshold: 0.15  # trigger accepted only below this speed [m/s]
+max_timer_dt: 0.20                # larger/negative timer jumps freeze trajectory clock [s]
