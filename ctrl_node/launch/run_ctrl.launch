@@ -1,0 +1,15 @@
+<launch>
+	<!-- 依赖说明: /drone0/manager 由 estimator/add_bias.launch 创建,须先于本 launch 启动;
+	     单独运行本 launch 时 ctrl_node 会一直等待该 manager,请先启动 add_bias.launch -->
+	<group ns="drone0">
+		<!-- Load ctrl_node into the existing /drone0/manager -->
+		<node pkg="nodelet" type="nodelet" name="ctrl_node" args="load ctrl_node/FSM /drone0/manager" output="screen">
+
+			<remap from="~odom" to="/mavros/local_position/odom" /> <!-- 仿真 -->
+			<!-- <remap from="~odom" to="/odom/remap" /> --> <!-- 实飞(RTK/mocap 经 odomRemap 处理后输出) -->
+			<remap from="~cmd" to="/drone0/planning/cmd" />
+
+			<rosparam command="load" file="$(find ctrl_node)/config/ctrl_param.yaml" />
+		</node>
+	</group>
+</launch>

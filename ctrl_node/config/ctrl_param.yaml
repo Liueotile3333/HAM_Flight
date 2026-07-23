@@ -1,0 +1,114 @@
+controller_type: 2 # 0:position, 1:velocity, 2:attitude, 3:angular_velocity
+estimator_type: 4 # //0:UDE 1:TVUDE 2:PD 3:TTV-UDE 4:PID
+mass        : 4.6 #4.6 需根据实际飞机的重量调整
+gra         : 9.81
+max_manual_vel: 0.0
+
+takeoff_state:
+    height: 1.0 # m
+    speed: 0.3 # m/s
+
+fsmparam:
+    frequncy: 100
+
+kine_cons:
+    vel_ver_max: 1.0
+    vel_hor_max: 2.0
+    acc_ver_max: 0.5
+    acc_hor_max: 1.5
+    omega_yaw_max: 0.2
+
+thrust_model: # The model that maps thrust signal u(0~1) to real thrust force F(Unit:N): F=K1*Voltage^K2*(K3*u^2+(1-K3)*u). 
+    print_value: false # display the value of “thr_scale_compensate” or “hover_percentage” during thrust model estimating.
+    accurate_thrust_model: false  # This can always enabled if don't require accurate control performance :-)
+    # accurate thrust mapping parameters
+    K1: 0.7583 # Needs precise calibration!
+    K2: 1.6942 # Needs precise calibration!
+    K3: 0.6786 # Needs precise calibration! K3 equals THR_MDL_FAC in https://docs.px4.io/master/en/config_mc/pid_tuning_guide_multicopter.html.
+    # approximate thrust mapping parameters
+    hover_percentage: 0.71  # 原0.4, 按 thr2acc=13.74 反推 (9.81/13.74), 仿真 iris 等效悬停油门
+
+gain: 
+    # velocity PID
+    Kvp0: 3.0 #1 #2.0
+    Kvp1: 1.5 #1 #1.5
+    Kvp2: 1.5 #1.5
+    Kvi0: 1.8 #1.5 #1.8
+    Kvi1: 1.8 #1.5 #1.8
+    Kvi2: 1.8 #1.8
+    Kvd0: 120
+    Kvd1: 120
+    Kvd2: 100
+    # position-loop PID (用于 des_acc = des.a + Kd·vel_err + Kp·pos_err; 注:yaml 原注释"attitude"有误,实为位置环)
+    Kp0: 1.5 #原1.0
+    Kp1: 1.5 #原1.0
+    Kp2: 2.0 #原1.5
+    Ki0: 0.05 #原0.0
+    Ki1: 0.05 #原0.0
+    Ki2: 0.1 #原0.05
+    Kd0: 0.5 #回退(1.5 导致炸机); Kd 放大速度噪声, 须小步调试
+    Kd1: 0.5
+    Kd2: 0.5
+    # # angular PID
+    # Kp0: 1.5 #1.0
+    # Kp1: 1.0 #1.5
+    # Kp2: 1.0 #1.5 #0.5 #1.0
+    # Ki0: 0.05 #1.5
+    # Ki1: 0.05 #1.5
+    # Ki2: 0.025 #1.0
+    # Kd0: 0.25 #0.5 #1.0 #1.5 #1.8
+    # Kd1: 0.25 #0.5 #1.0 #1.5 #1.8
+    # Kd2: 0.25 #0.5 #1.0 #1.8
+    # ↓↓↓ Only used in rate control mode.
+    KAngp0: 6.0 #1.0 #2.0
+    KAngp1: 3.0 #1.0 #2.0
+    KAngp2: 6.0 #3.0 #1.0 #2.0
+    KAngi0: 0.05
+    KAngi1: 0.05
+    KAngi2: 0.05
+    KAngd0: 2.0 #0.5 #1.0 #2.0 #3.0
+    KAngd1: 2.0 #0.5 #1.0 #2.0 #3.0
+    KAngd2: 4.0 #0.5 #1.0 #2.0 #3.0
+    # ↓↓↓ used in UDE.
+    #position
+    Trou0: 6 #3
+    Trou1: 6 #
+    Trou2: 10 #
+    #attitude
+    Tatt0: 6 #
+    Tatt1: 6 #
+    Tatt2: 6 # 
+    # ↓↓↓ used in TVUDE.
+    #position
+    Trou_min0: 6
+    Trou_min1: 6
+    Trou_min2: 10
+    Trou_max0: 90
+    Trou_max1: 90
+    Trou_max2: 150
+    t_min: 2
+    t_max: 5
+    t_z_min: 0.5
+    t_z_max: 3.5
+    t_xy_min: 10.1
+    t_xy_max: 13.1
+    #attitude
+    Tatt_min0: 6
+    Tatt_min1: 6
+    Tatt_min2: 6
+    Tatt_max0: 90
+    Tatt_max1: 90
+    Tatt_max2: 90
+    t_att_min: 10.1
+    t_att_max: 13.1
+    # ↓↓↓ used in ESO.
+    Omg_eso_pos0: 1
+    Omg_eso_pos1: 1
+    Omg_eso_pos2: 1
+
+msg_timeout:
+    odom: 0.5
+    rc:   0.5
+    cmd:  0.1
+    imu:  0.5
+    bat:  0.5
