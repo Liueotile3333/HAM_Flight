@@ -1,0 +1,63 @@
+cmake_minimum_required(VERSION 3.0.2)
+project(ctrl_node)
+
+add_compile_options(-std=c++14)
+set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Wall")
+
+find_package(Eigen3 REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  nodelet
+  quadrotor_msgs
+  mavros_msgs
+  trajectory_utils
+)
+
+catkin_package(
+  INCLUDE_DIRS include ${EIGEN3_INCLUDE_DIR}
+  LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS roscpp nodelet quadrotor_msgs mavros_msgs trajectory_utils
+  DEPENDS EIGEN3
+)
+
+include_directories(
+  include
+  ${EIGEN3_INCLUDE_DIR}
+  ${catkin_INCLUDE_DIRS}
+)
+
+# add_executable(${PROJECT_NAME} 
+#   src/controller.cpp
+#   src/param.cpp
+#   src/input.cpp
+# )
+
+add_library(${PROJECT_NAME}
+  src/ctrl_nodelet.cpp
+  src/ctrl_fsm.cc
+  src/controller.cpp
+  src/aero_model.cpp
+  src/param.cpp
+  src/input.cpp
+)
+
+target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+
+add_dependencies(${PROJECT_NAME}
+  ${catkin_EXPORTED_TARGETS}
+)
+
+if(CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(mission_trigger_test
+    test/mission_trigger_test.cpp
+  )
+  if(TARGET mission_trigger_test)
+    target_link_libraries(mission_trigger_test
+      ${PROJECT_NAME}
+      ${catkin_LIBRARIES}
+    )
+  endif()
+endif()

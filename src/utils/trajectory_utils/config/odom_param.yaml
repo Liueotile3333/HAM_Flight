@@ -1,0 +1,45 @@
+pub_hz_: 200
+
+# Positive value advances the evaluated reference trajectory by this duration.
+time_delay: 0.03
+
+# Reference frame stamped into published PointStamped / PositionCommand headers.
+frame_id: world
+
+# Below this horizontal speed [m/s] the yaw reference holds its previous value
+# (climb / hold / descent); above it yaw follows the velocity heading.
+yaw_min_vxy: 0.1
+
+# Parameterized trajectory: vertical climb -> circle/figure-eight -> top hold -> vertical descent.
+# The trajectory origin is frozen at the valid planning trigger position.
+traj_type: 2              # 1=circle, 2=figure-eight
+traj_cycles: 1            # complete closed cycles in the maneuver segment
+traj_radius: 5.0         # circle radius / figure-eight x amplitude [m]     Max------20
+traj_amp_y:  3.5         # P2: figure-eight y amplitude [m] (=0.7*R), ignored for circle
+traj_height: 2.0          # climb height relative to trigger position [m]   Max------5
+traj_rise_time: 5.0       # base climb duration [s]
+traj_duration: 50.0       # maneuver duration [s]; phi_end remains 2*pi*traj_cycles
+traj_ramp_ratio: 0.35     # P1: each ramp is 35%; middle 30% is constant phase speed
+traj_hold_time: 5.0       # P3: hover after maneuver before descent [s]
+traj_descend_time: 5.0    # descent duration [s]
+
+# Spatial and temporal scaling are independent.
+path_scale: 1.0           # scales radius, amplitude and climb height
+speed_scale: 1.0          # >1 faster, <1 slower; geometry remains unchanged
+lookahead_time: 0.5       # future-reference lookahead in wall-clock seconds
+
+# Startup velocity blend: fade the measured trigger velocity into the trajectory
+# over this window so the reference starts at the UAV's real speed (no step).
+# 0 disables — consider disabling if real-flight odom is noisy at rest.
+init_vel_blend_time: 1.0  # blend window [s]
+
+# Safety and timing checks.
+# NOTE: this guards against starting a from-rest trajectory while the UAV is
+# clearly moving. With init_vel_blend_time > 0 the startup speed is blended in
+# smoothly, so a moderate threshold is safe. Tune to ~1.5x your steady hover
+# speed; if hover is noisy, fix the controller (ctrl_node gains / PX4 MPC)
+# rather than raising this indefinitely.
+trigger_velocity_threshold: 0.50  # trigger accepted only below this speed [m/s]
+max_timer_dt: 0.20                # larger/negative timer jumps freeze trajectory clock [s]
+odom_timeout: 0.50                # stale odometry stops/rejects trajectory output [s]
+trigger_handshake_timeout: 30.0   # user trigger expires if controller-ready does not arrive in time [s]

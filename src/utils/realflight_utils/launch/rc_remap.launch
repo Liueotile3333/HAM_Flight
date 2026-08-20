@@ -1,0 +1,7 @@
+<launch>
+  <group ns="drone0">
+    <node pkg="nodelet" type="nodelet" name="rcinRemap" args="load rcinRemap/rcRemap manager" output="screen">
+    </node>   
+  </group>       
+
+</launch>

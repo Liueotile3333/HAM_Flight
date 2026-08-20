@@ -1,0 +1,25 @@
+<launch>
+	<arg name="navigation_monitor_enabled" default="false" />
+	<!-- 依赖说明: /drone0/manager 由 trajectory_utils/traj_gen.launch 创建,须先于本 launch 启动;
+	     单独运行本 launch 时 ctrl_node 会一直等待该 manager,请先启动 traj_gen.launch -->
+	<group ns="drone0">
+		<!-- Load ctrl_node into the existing /drone0/manager -->
+		<node pkg="nodelet" type="nodelet" name="ctrl_node" args="load ctrl_node/FSM /drone0/manager" output="screen">
+
+			<!-- <remap from="~odom" to="/mavros/local_position/odom" /> --><!-- 仿真 -->
+			<remap from="~odom" to="/odom/remap" /> <!-- 实飞(RTK硬件 → Pixhawk 6C / PX4 EKF
+																→ MAVROS /mavros/local_position/odom
+																→ odomRemap → /odom/remap处理后输出) -->
+			<remap from="~cmd" to="/drone0/planning/cmd" />
+			<!-- Controller internal interface: ~wind_velocity
+        		External wind-velocity source: /wind_velocity_world
+       			Message: geometry_msgs/Vector3Stamped
+        		Frame: same WORLD frame as odom.v  -->
+    		<remap from="~wind_velocity" to="/wind_velocity_world" />
+
+			<rosparam command="load" file="$(find ctrl_node)/config/ctrl_param.yaml" />
+			<!-- 仿真/Mocap 默认关闭；RTK 实飞脚本必须显式传 true。 -->
+			<param name="navigation_monitor/enabled" value="$(arg navigation_monitor_enabled)" />
+		</node>
+	</group>
+</launch>

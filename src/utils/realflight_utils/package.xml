@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>realflight_utils</name>
+  <version>1.0.0</version>
+  <description>The plugins packages of realflight </description>
+
+  <maintainer email="hrmramond@gmail.com">hrm</maintainer>
+
+  <!-- One license tag required, multiple allowed, one license per tag -->
+  <!-- Commonly used license strings: -->
+  <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>eigen</depend>
+  <depend>gazebo_msgs</depend>
+  <depend>geodesy</depend>
+  <depend>geometry_msgs</depend>
+  <depend>mavros_msgs</depend>
+  <depend>message_filters</depend>
+  <depend>nav_msgs</depend>
+  <depend>nodelet</depend>
+  <depend>quadrotor_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>tf</depend>
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+      <nodelet plugin="${prefix}/rcinremap_plugins.xml"/>
+      <nodelet plugin="${prefix}/trajals_plugins.xml"/>
+      <nodelet plugin="${prefix}/odomremap_plugins.xml"/>
+
+  </export>
+</package>

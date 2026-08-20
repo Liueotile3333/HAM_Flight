@@ -1,0 +1,13 @@
+<launch>
+  <group ns="drone0">
+
+    <node pkg="nodelet" type="nodelet" name="odomRemap" args="load odomRemap/odomRemap /manager" output="screen">
+      <param name="gtruthTopic" value="/gazebo/model_states"/>
+      <param name="modelName" value="iris_liftwing_0"/> 
+      <param name="fit_size" value="100"/>
+      <param name="localization_source" value="1"/>
+      <param name="simulation" value="true"/> <!-- 1 for simulation -->
+    </node>
+  </group>
+
+</launch>

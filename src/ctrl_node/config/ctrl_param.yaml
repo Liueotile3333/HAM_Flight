@@ -1,0 +1,187 @@
+controller_type: 2   # 0:position, 1:velocity, 2:attitude, 3:angular_velocity
+estimator_type: 1    # 0:UDE 1:TVUDE 2:PD 3:TTV-UDE 4:PID
+odom_source: 0       # ctrl_node receives /odom/remap.   
+                     # Its pose and twist.linear are already expressed in the remapped world frame.
+                     # 0: world-frame velocity ***********
+                     # 1: body-frame velocity requiring body-to-world rotation
+yaw_mode: 1          # Yaw reference mode: 0=fixed heading (0 rad), 1=trajectory-tangent heading
+
+mass        : 4.6    #4.6 需根据实际飞机的重量调整
+gra         : 9.81
+
+takeoff_state:
+    height: 1.0 # m
+    speed: 0.3 # m/s
+    # 期望爬升时长之外允许的附加时间；超时后冻结目标并转当前点悬停。
+    timeout_margin: 5.0
+
+# /landing_trigger 在 FSM 中的最大等待时间，防止取消任务后的旧触发在未来起飞时生效。
+mission_trigger_timeout: 30.0
+
+# 默认关闭以兼容仿真/Mocap；RTK 实飞启动脚本通过 run_ctrl.launch 参数显式开启。
+navigation_monitor:
+    enabled: false
+    rtk_fixed_min_type: 6
+    status_timeout: 1.0
+    failure_grace: 1.0
+    # 从首次判定 RTK/EKF 异常开始计时；超过该时长后由 HOVER 交接 PX4 AUTO.LAND。
+    auto_land_timeout: 3.0
+
+landing_state:
+    # 旧版平滑下降兼容参数；当前 LAND 直接交接 PX4 AUTO.LAND。
+    speed: 0.3
+    target_height: 0.0
+    dis_arm_height: 0.25
+
+fsmparam:
+    frequency: 100   # FSM 控制环频率 [Hz] (新名; 旧名 frequncy 仍兼容, param.cpp 优先读 frequency 回退 frequncy)
+
+kine_cons:
+    vel_ver_max: 1.5
+    vel_hor_max: 5.0
+    acc_ver_max: 2.0
+    acc_hor_max: 3.0   
+    tilt_max_deg: 25.0
+    omega_roll_max: 2.0   # 机体滚转角速率上限 [rad/s] (body-rate 饱和/积分 anti-windup 限幅; ~115 °/s)
+    omega_pitch_max: 2.0  # 机体俯仰角速率上限 [rad/s] (~115 °/s)
+    omega_yaw_max: 1.0    # 机体偏航角速率上限 [rad/s] (~60 °/s)
+
+thrust_model:
+    accurate_thrust_model: false  # false: fixed gra/hover_percentage mapping (recommended for validation); true: guarded online RLS update
+    # approximate thrust mapping parameters
+    hover_percentage: 0.71   # 原0.4 , 按 thr2acc=13.74 反推 (9.81/13.74), 仿真 iris 等效悬停油门
+    # Safety bounds for the online RLS thrust-to-acceleration estimate.
+    # With accurate_thrust_model=false the controller keeps the fixed mapping gra/hover_percentage.
+    thr2acc_min: 8.0
+    thr2acc_max: 30.0 # 20.0
+
+# Aerodynamic feedforward for lift-augmented multicopter (升力翼四旋翼).
+# enabled: false=关闭气动前馈(退化为普通多旋翼); true=按 model_type 用 LINEAR/TABLE 模型.
+# CL/CD 为机翼迎角 α[deg] 的线性函数: CL=CL_a·α+CL_0, CD=CD_a·α+CD_0;
+# α[deg] = atan2(-v_z, v_x) in body + alpha_incidence_deg(机翼安装角). S 为真实机翼参考面积.
+aero:
+  enabled: false
+  # 0 = 解析线性 CL/CD
+  # 1 = 气动数据库查表插值
+  model_type: 0
+  # TABLE 模型的气动数据库 CSV (model_type=1 时使用)。
+  # 绝对路径(或相对节点工作目录); 留空 → TABLE 退化为零补偿。
+  # 格式: alpha_deg,beta_deg,CL,CD,CY,Cl,Cm,Cn  (正交网格 α×β, 行序不限)
+  table_file: ""
+  rho: 1.225                 # 空气密度 [kg/m^3]
+  S:   0.194                 # 机翼参考面积 [m^2] (BWB, 与 Gazebo iris_liftwing 模型一致)
+  b:   1.0                  # 翼展 [m] (气动力矩 Mx/Mz 用; 占位, 待 CFD/风洞数据)
+  c_bar: 0.2                # 平均气动弦 [m] (气动力矩 My 用; 占位, 待 CFD/风洞数据)
+  force_max: 23.0           # 气动力模长上限 [N] ≈ 0.5 mg (mass 4.6 kg → mg=45.1 N)。
+                            # commissioning 保守上限: 错误气动表最坏前馈 ~4.9 m/s² (姿态仍受 tilt_max 约束)。
+                            # 注意: LINEAR 模型在 15~20 m/s 合法升力即达 0.45~1.05 mg, ~17 m/s 以上本上限会
+                            # 饱和合法补偿 —— 巡航工况前须按 CFD/风洞/实飞数据放宽 (>2mg 启动会 ROS_WARN)。
+  moment_max: 50.0          # 气动力矩模长上限 [N·m] (必须 >0; 力矩仅诊断发布未接入执行器, 不影响控制)
+  CL_a: 0.0486               # dCL/dα (α 以度为单位)
+  CL_0: 0.5126               # α=0 处 CL(相对机翼弦)
+  CD_a: 0.0112               # dCD/dα
+  CD_0: 0.0341               # α=0 处 CD
+  alpha_incidence_deg: 20.0  # 机翼安装角 [deg]
+  # 只有机体系 +X 方向速度达到该值后，才认为进入有效前飞状态
+  # 纯垂直升降、悬停和倒飞均不启用当前前飞气动模型
+  v_forward_min: 1.0
+  forward_ratio_min: 0.7
+  # 气动数据库有效范围
+  alpha_min_deg: 0.0
+  alpha_max_deg: 20.0
+  # 防止异常系数
+  CL_min: 0.0
+  CL_max: 2.0
+  CD_min: 0.0
+  CD_max: 1.0
+  # 侧滑角 / 侧向力 / 力矩系数限幅 (待 CFD/风洞数据标定)
+  beta_min_deg: -20.0
+  beta_max_deg:  20.0
+  CY_min: -1.0
+  CY_max:  1.0
+  Cl_min: -1.0
+  Cl_max:  1.0
+  Cm_min: -1.0
+  Cm_max:  1.0
+  Cn_min: -1.0
+  Cn_max:  1.0
+  # ==============================
+  # Wind / airspeed configuration
+  # false(assume zero wind): V_air = V_ground
+  # true:(use external wind velocity): V_air = V_ground - V_wind
+  use_wind_velocity: false
+  # Maximum acceptable age of wind measurement [s]
+  wind_timeout: 0.20
+
+gain: 
+    # velocity PD
+    Kvp0: 3.0
+    Kvp1: 1.5
+    Kvp2: 1.5
+    Kvd0: 120
+    Kvd1: 120
+    Kvd2: 100
+    # position-loop PID: des_acc = des.a + Kd·vel_err + Kp·pos_err
+    Kp0: 1.5
+    Kp1: 1.5
+    Kp2: 2.0
+    Ki0: 0.05
+    Ki1: 0.05
+    Ki2: 0.05 #0.10
+    Kd0: 0.8 #0.55
+    Kd1: 0.8 #0.55
+    Kd2: 1.5 #0.50
+    # # angular PID
+    # ↓↓↓ Only used in rate control mode.
+    KAngp0: 6.0 
+    KAngp1: 3.0 
+    KAngp2: 6.0 
+    KAngi0: 0.05
+    KAngi1: 0.05
+    KAngi2: 0.05
+    KAngd0: 2.0 
+    KAngd1: 2.0 
+    KAngd2: 4.0 
+    # ↓↓↓ used in UDE.
+    #position
+    Trou0: 6 #3
+    Trou1: 6 #
+    Trou2: 10 #
+    #attitude
+    Tatt0: 6 #
+    Tatt1: 6 #
+    Tatt2: 6 # 
+    # ↓↓↓ used in TVUDE.
+    #position
+    Trou_min0: 6
+    Trou_min1: 6
+    Trou_min2: 10
+    Trou_max0: 90
+    Trou_max1: 90
+    Trou_max2: 150
+    t_min: 2
+    t_max: 5
+    t_z_min: 0.5
+    t_z_max: 3.5
+    t_xy_min: 10.1
+    t_xy_max: 13.1
+    #attitude
+    Tatt_min0: 6
+    Tatt_min1: 6
+    Tatt_min2: 6
+    Tatt_max0: 90
+    Tatt_max1: 90
+    Tatt_max2: 90
+    t_att_min: 10.1
+    t_att_max: 13.1
+
+msg_timeout:
+    odom: 0.5
+    # /mavros/state 跟随 PX4 HEARTBEAT, 仅 ~1Hz; 门限须 > 1s(容 1 条丢失), 否则
+    # 每秒周期性误判丢失, 且 armed OFFBOARD 下会误触发 LAND/AUTO.LAND 紧急降落。
+    state: 2.0
+    extended_state: 2.0
+    rc:   0.5
+    cmd:  0.1
+    imu:  0.5
+    bat:  0.5

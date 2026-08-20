@@ -1,0 +1,22 @@
+<launch>
+
+    <!-- <group ns="drone"> -->
+
+        <node pkg="nodelet" type="nodelet" name="manager"  args="manager" output="screen">
+                <param name="num_worker_threads" value="16"/>
+        </node>
+
+        <node pkg="nodelet" type="nodelet" name="traj_analyse" args="load trajAnalyse/trajAls manager" output="screen">
+                <rosparam file="$(find realflight_utils)/config/traj_analyse.yaml" command="load" />
+                <param name="analyse_arg" value="1"/>
+        </node> 
+
+        <!-- <node pkg="px4ctrl" type="px4ctrl_node" name="px4ctrl" output="screen">
+                        <remap from="~odom" to="/mavros/odometry/in" />
+                        <remap from="~cmd" to="/drone0/planning/traj" />
+                <rosparam command="load" file="$(find px4ctrl)/config/ctrl_param_fpv.yaml" />
+        </node> -->
+
+    <!-- </group> -->
+
+</launch>

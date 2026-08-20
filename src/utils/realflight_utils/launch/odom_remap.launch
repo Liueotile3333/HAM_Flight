@@ -1,0 +1,49 @@
+<launch>
+  <group ns="drone0">
+
+    <node pkg="nodelet"
+      type="nodelet"
+      name="odomRemap"
+      args="load odomRemap/odomRemap /drone0/manager"
+      output="screen">
+
+      <!-- MAVROS EKF 本地位置 -->
+      <param name="gtruthTopic"
+            value="/mavros/local_position/odom"/>
+
+      <param name="fit_size"
+            value="100"/>
+
+      <!--  odom_remap 定位来源： 0 = Mocap  1 = GPS/RTK   -->
+      <param name="localization_source"
+            type="int"
+            value="1"/>
+
+      <param name="simulation"
+            type="bool"
+            value="false"/>
+
+      <!-- GPS/RTK 零点标定样本数 -->
+      <param name="gps_bias_samples"
+            type="int"
+            value="300"/>
+
+      <!-- MAVROS local odom 超时阈值 -->
+      <param name="gps_odom_timeout"
+            type="double"
+            value="0.20"/>
+
+      <!-- odom 与 velocity_local 同步队列 -->
+      <param name="gps_vel_sync_queue_size"
+            type="int"
+            value="20"/>
+
+      <!-- odom 与 velocity_local 最大时间差 -->
+      <param name="gps_vel_max_skew"
+            type="double"
+            value="0.02"/>
+
+      </node>
+
+  </group>
+</launch>
